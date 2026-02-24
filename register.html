@@ -1,0 +1,50 @@
+<!DOCTYPE html>
+<html lang="it">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>VOID - Registrazione</title>
+  <link rel="stylesheet" href="style.css" />
+</head>
+<body class="bg-void">
+  <div class="auth-wrap">
+    <div class="auth-decor"></div>
+
+    <div class="auth-card">
+      <h1 class="brand">VOID</h1>
+      <p class="brand-sub">Crea un account. I post vivono 24 ore.</p>
+      <div class="hr"></div>
+
+      <input id="username" placeholder="Username" autocomplete="username" />
+      <input id="email" type="email" placeholder="Email" autocomplete="email" />
+      <input id="pass" type="password" placeholder="Password" autocomplete="new-password" />
+      <input id="avatar" type="file" accept="image/*" />
+
+      <button class="btn" id="regBtn">Registrati</button>
+      <a class="small-link" href="login.html">Hai già un account? Accedi</a>
+      <a class="small-link" href="index.html">← Indietro</a>
+
+      <p id="msg" class="muted" style="margin-top:12px;"></p>
+    </div>
+  </div>
+
+  <script type="module">
+    import { $, register } from "./void.js";
+    $("regBtn").onclick = async () => {
+      $("msg").textContent = "";
+      try{
+        const avatarFile = $("avatar").files?.[0] ?? null;
+        await register(
+          $("username").value.trim(),
+          $("email").value.trim(),
+          $("pass").value,
+          avatarFile
+        );
+        location.href = "home.html";
+      }catch(e){
+        $("msg").textContent = e?.message ?? "Errore registrazione";
+      }
+    };
+  </script>
+</body>
+</html>

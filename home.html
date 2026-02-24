@@ -1,0 +1,359 @@
+<!DOCTYPE html>
+<html lang="it">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>VOID - Home</title>
+  <link rel="stylesheet" href="style.css" />
+</head>
+<body>
+
+<header>
+  <a class="profile" id="meProfileLink" href="profile.html">
+    <img id="meAvatar" src="https://via.placeholder.com/50" />
+    <span id="meName">VOID</span>
+  </a>
+  <div style="display:flex;gap:10px;">
+    <a href="search.html" class="icon-btn">🔎</a>
+    <a href="#" id="openCreate" class="icon-btn">➕</a>
+    <a href="settings.html" class="icon-btn">⚙️</a>
+  </div>
+</header>
+
+<div class="feed" id="feed"></div>
+
+<nav class="bottom-nav">
+  <a class="active" href="home.html">🏠</a>
+  <a href="#" id="openCreate2">＋</a>
+  <a href="search.html">🔎</a>
+  <a href="profile.html">👤</a>
+</nav>
+
+<!-- CREATE MODAL -->
+<div class="modal-backdrop" id="createBackdrop" style="display:none;">
+  <div class="modal" onclick="event.stopPropagation()">
+    <div class="row" style="justify-content:space-between;">
+      <b>Nuovo Post</b>
+      <button class="btn btn-ghost" id="closeCreate">Chiudi</button>
+    </div>
+    <p class="muted">Solo foto o video (niente post solo testo). Base 24h.</p>
+
+    <input id="createFile" type="file" accept="image/*,video/*" />
+    <textarea id="createCaption" placeholder="Caption"></textarea>
+    <input id="createTags" placeholder="Tag (es: #roma #night — max 5)" />
+
+    <button class="btn" id="publishBtn">Pubblica</button>
+    <p class="muted" id="createMsg" style="margin-top:10px;"></p>
+  </div>
+</div>
+
+<!-- COMMENTS MODAL -->
+<div class="modal-backdrop" id="commentsBackdrop" style="display:none;">
+  <div class="modal" onclick="event.stopPropagation()">
+    <div class="row" style="justify-content:space-between;">
+      <b>Commenti</b>
+      <button class="btn btn-ghost" id="closeComments">Chiudi</button>
+    </div>
+
+    <div id="commentsList" style="margin-top:10px;"></div>
+
+    <div class="sep"></div>
+
+    <textarea id="cText" placeholder="Scrivi un commento… (testo +5m)"></textarea>
+    <div class="actions">
+      <button id="sendText">Invia</button>
+      <button id="toggleGif">GIF</button>
+    </div>
+
+    <div class="actions">
+      <label class="pill" style="cursor:pointer;flex:1;justify-content:center;">
+        🖼 Foto (+5m)
+        <input id="cPhoto" type="file" accept="image/*" style="display:none;">
+      </label>
+      <span class="pill" style="flex:1;justify-content:center;">🎙 audio +10m</span>
+    </div>
+
+    <div class="actions">
+      <button id="recBtn">🎙 Registra (max 20s)</button>
+      <button id="stopBtn" style="display:none;">⏹ Stop</button>
+    </div>
+
+    <div id="gifBox" style="display:none;margin-top:10px;">
+      <input id="gifQuery" placeholder="Cerca GIF (Tenor)" />
+      <div class="grid3" id="gifGrid" style="margin-top:10px;"></div>
+      <p class="muted" style="margin-top:8px;">
+        Se TENOR_KEY è vuota in void.js, il picker non si carica. (Puoi comunque incollare URL GIF nel testo.)
+      </p>
+    </div>
+
+    <p class="muted" style="margin-top:10px;">Like +5m • Repost +10m • Follow da post +30m • Commento +5m • Audio +10m</p>
+  </div>
+</div>
+
+<script type="module">
+  import {
+    $, auth, db, collection, addDoc,
+    requireAuthOrRedirect, getUser, uploadTo,
+    normalizeTags, base24h, escapeHtml,
+    fnLike, fnRepost, fnFollowFromPost, fnAddComment,
+    fetchLivePosts, fetchActiveAds, injectAds,
+    remainingMs, formatRemaining, lifePct,
+    tenorSearch
+  } from "./void.js";
+
+  // Re-export Firestore funcs used here (kept minimal)
+  import {
+    collection as fsCollection,
+    getDocs, query, orderBy
+  } from "https://www.gstatic.com/firebasejs/10.12.5/firebase-firestore.js";
+
+  // Modal helpers
+  const openModal = (id)=> $(id).style.display="flex";
+  const closeModal = (id)=> $(id).style.display="none";
+
+  $("createBackdrop").onclick = ()=> closeModal("createBackdrop");
+  $("commentsBackdrop").onclick = ()=> closeModal("commentsBackdrop");
+  $("closeCreate").onclick = ()=> closeModal("createBackdrop");
+  $("closeComments").onclick = ()=> closeModal("commentsBackdrop");
+  $("openCreate").onclick = (e)=>{ e.preventDefault(); openModal("createBackdrop"); };
+  $("openCreate2").onclick = (e)=>{ e.preventDefault(); openModal("createBackdrop"); };
+
+  let me = null;
+  let tier = "FREE";
+  let currentPostId = null;
+
+  // Audio recorder
+  let mediaRecorder = null;
+  let audioChunks = [];
+  let stopTimer = null;
+
+  async function startRec(){
+    const stream = await navigator.mediaDevices.getUserMedia({ audio:true });
+    mediaRecorder = new MediaRecorder(stream);
+    audioChunks = [];
+
+    mediaRecorder.ondataavailable = (e)=> audioChunks.push(e.data);
+    mediaRecorder.onstop = async ()=>{
+      stream.getTracks().forEach(t=>t.stop());
+      const blob = new Blob(audioChunks, { type:"audio/webm" });
+      await sendAudio(blob);
+    };
+
+    mediaRecorder.start();
+    $("recBtn").style.display="none";
+    $("stopBtn").style.display="block";
+    stopTimer = setTimeout(stopRec, 20000);
+  }
+  function stopRec(){
+    if(stopTimer) clearTimeout(stopTimer);
+    stopTimer = null;
+    if(mediaRecorder && mediaRecorder.state !== "inactive") mediaRecorder.stop();
+    $("recBtn").style.display="block";
+    $("stopBtn").style.display="none";
+  }
+  $("recBtn").onclick = startRec;
+  $("stopBtn").onclick = stopRec;
+
+  // Render
+  function postHtml(p){
+    const isAd = !!p.isAd;
+    const rem = isAd ? "Sponsor" : formatRemaining(remainingMs(p.expiresAt));
+    const pct = (!isAd && p.createdAt && p.expiresAt) ? Math.round(lifePct(p.createdAt,p.expiresAt)*100) : 100;
+
+    const media = (p.mediaType==="video")
+      ? `<video class="media" src="${p.mediaUrl}" controls playsinline></video>`
+      : `<img class="media" src="${p.mediaUrl}" />`;
+
+    const tags = (p.tags && p.tags.length) ? `<p class="tags">${p.tags.map(t=>`#${escapeHtml(t)}`).join(" ")}</p>` : "";
+    const badge = isAd ? `<span class="pill">SPONSORIZZATO</span>` : ``;
+
+    const actions = isAd ? `
+      <p class="muted" style="margin-top:10px;">Pubblicità gestita da VOID (durata controllata).</p>
+    ` : `
+      <div class="actions">
+        <button data-act="like" data-id="${p.id}">❤️ ${p.likeCount||0}</button>
+        <button data-act="repost" data-id="${p.id}">🔁 ${p.repostCount||0}</button>
+      </div>
+      <div class="actions">
+        <button data-act="follow" data-id="${p.id}" data-author="${p.authorId}">➕ Follow</button>
+        <button data-act="comments" data-id="${p.id}">💬 ${p.commentCount||0}</button>
+      </div>
+    `;
+
+    return `
+      <div class="post">
+        <div class="post-header">
+          <img src="${p.authorAvatar || "https://via.placeholder.com/40"}" />
+          <div class="post-info">
+            <div class="name">${escapeHtml(p.authorUsername || "User")}</div>
+            <div class="timer">⏳ ${rem}</div>
+          </div>
+          ${badge}
+        </div>
+
+        <div class="life-bar"><div class="life-fill" style="width:${pct}%"></div></div>
+        ${media}
+        ${p.caption ? `<p class="caption">${escapeHtml(p.caption)}</p>` : ""}
+        ${tags}
+        ${actions}
+      </div>
+    `;
+  }
+
+  async function renderFeed(){
+    const posts = await fetchLivePosts();
+    const ads = await fetchActiveAds();
+    const feed = injectAds(posts, ads, 5, tier);
+
+    $("feed").innerHTML = feed.map(postHtml).join("") || `<p class="muted">Nessun post vivo. Pubblica qualcosa!</p>`;
+
+    // bind actions
+    [...$("feed").querySelectorAll("button[data-act]")].forEach(btn=>{
+      btn.onclick = async ()=>{
+        const act = btn.getAttribute("data-act");
+        const postId = btn.getAttribute("data-id");
+        if(act === "like") await fnLike({ postId });
+        if(act === "repost") await fnRepost({ postId });
+        if(act === "follow") {
+          const authorId = btn.getAttribute("data-author");
+          await fnFollowFromPost({ postId, authorId });
+        }
+        if(act === "comments") await openComments(postId);
+        await renderFeed();
+      };
+    });
+  }
+
+  // Create post
+  $("publishBtn").onclick = async ()=>{
+    $("createMsg").textContent = "";
+    try{
+      const file = $("createFile").files?.[0] ?? null;
+      if(!file) return $("createMsg").textContent = "Seleziona un file (foto o video).";
+
+      const isVideo = file.type.startsWith("video/");
+      const mediaType = isVideo ? "video" : "image";
+      const createdAt = Date.now();
+      const expiresAt = base24h(createdAt);
+
+      const url = await uploadTo(`posts/${me.uid}/${createdAt}_${file.name}`, file);
+
+      await addDoc(fsCollection(db, "posts"), {
+        authorId: me.uid,
+        authorUsername: me.username,
+        authorAvatar: me.avatarUrl || null,
+
+        mediaType,
+        mediaUrl: url,
+        caption: $("createCaption").value.trim() || null,
+        tags: normalizeTags($("createTags").value),
+
+        createdAt,
+        expiresAt,
+        likeCount: 0,
+        repostCount: 0,
+        commentCount: 0,
+        followerFromThisCount: 0,
+      });
+
+      $("createFile").value="";
+      $("createCaption").value="";
+      $("createTags").value="";
+      closeModal("createBackdrop");
+      await renderFeed();
+    }catch(e){
+      $("createMsg").textContent = e?.message ?? "Errore pubblicazione";
+    }
+  };
+
+  // Comments
+  async function loadComments(){
+    const qy = query(fsCollection(db, "posts", currentPostId, "comments"), orderBy("createdAt","desc"));
+    const snap = await getDocs(qy);
+    const list = snap.docs.map(d=>({ id:d.id, ...d.data() }));
+    $("commentsList").innerHTML = list.map(c=>{
+      const head = `<div style="font-weight:900;color:#a855f7">@${escapeHtml(c.authorUsername||"user")}</div>`;
+      if(c.kind==="text") return `<div style="padding:10px 0;border-bottom:1px solid rgba(255,255,255,.06)">${head}<div>${escapeHtml(c.text||"")}</div></div>`;
+      if((c.kind==="gif"||c.kind==="photo") && c.mediaUrl) return `<div style="padding:10px 0;border-bottom:1px solid rgba(255,255,255,.06)">${head}<img class="media" style="margin-top:8px" src="${c.mediaUrl}"></div>`;
+      if(c.kind==="audio" && c.mediaUrl) return `<div style="padding:10px 0;border-bottom:1px solid rgba(255,255,255,.06)">${head}<audio controls style="width:100%;margin-top:8px" src="${c.mediaUrl}"></audio></div>`;
+      return "";
+    }).join("") || `<p class="muted">Nessun commento.</p>`;
+  }
+
+  async function openComments(postId){
+    currentPostId = postId;
+    $("commentsList").innerHTML = `<p class="muted">Caricamento...</p>`;
+    openModal("commentsBackdrop");
+    await loadComments();
+  }
+
+  $("sendText").onclick = async ()=>{
+    const text = $("cText").value.trim();
+    if(!text) return;
+    await fnAddComment({ postId: currentPostId, kind:"text", text });
+    $("cText").value="";
+    await loadComments();
+    await renderFeed();
+  };
+
+  $("cPhoto").onchange = async (e)=>{
+    const file = e.target.files?.[0] ?? null;
+    if(!file) return;
+    const url = await uploadTo(`comment_media/${currentPostId}/${me.uid}/${Date.now()}_${file.name}`, file);
+    await fnAddComment({ postId: currentPostId, kind:"photo", mediaUrl:url });
+    e.target.value = "";
+    await loadComments();
+    await renderFeed();
+  };
+
+  async function sendAudio(blob){
+    const url = await uploadTo(`comment_audio/${currentPostId}/${me.uid}/${Date.now()}.webm`, blob);
+    await fnAddComment({ postId: currentPostId, kind:"audio", mediaUrl:url });
+    await loadComments();
+    await renderFeed();
+  }
+
+  // GIF picker
+  $("toggleGif").onclick = async ()=>{
+    const box = $("gifBox");
+    const open = box.style.display !== "none";
+    box.style.display = open ? "none" : "block";
+    if(!open){
+      await loadGifs("void");
+    }
+  };
+
+  async function loadGifs(q){
+    const urls = await tenorSearch(q);
+    $("gifGrid").innerHTML = urls.map(u=>`<img class="thumb" src="${u}" data-url="${u}">`).join("") || `<p class="muted">TENOR_KEY mancante in void.js</p>`;
+    [...$("gifGrid").querySelectorAll("img")].forEach(img=>{
+      img.onclick = async ()=>{
+        const url = img.getAttribute("data-url");
+        await fnAddComment({ postId: currentPostId, kind:"gif", mediaUrl:url });
+        await loadComments();
+        await renderFeed();
+      };
+    });
+  }
+
+  $("gifQuery").oninput = async (e)=>{
+    const q = e.target.value.trim() || "void";
+    await loadGifs(q);
+  };
+
+  // INIT
+  (async function init(){
+    const u = await requireAuthOrRedirect();
+    const ud = await getUser(u.uid);
+    me = { uid: u.uid, ...(ud||{}) };
+    tier = me.tier || "FREE";
+
+    $("meName").textContent = me.username || "User";
+    $("meAvatar").src = me.avatarUrl || "https://via.placeholder.com/50";
+    $("meProfileLink").href = `profile.html?uid=${u.uid}`;
+
+    await renderFeed();
+  })();
+</script>
+</body>
+</html>

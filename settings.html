@@ -1,0 +1,67 @@
+<!DOCTYPE html>
+<html lang="it">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>VOID - Impostazioni</title>
+  <link rel="stylesheet" href="style.css" />
+</head>
+<body>
+
+<header>
+  <a class="profile" href="home.html">
+    <img src="https://via.placeholder.com/50" />
+    <span style="font-weight:1000;">Impostazioni</span>
+  </a>
+  <div style="display:flex;gap:10px;">
+    <a href="home.html" class="icon-btn">🏠</a>
+    <a href="search.html" class="icon-btn">🔎</a>
+  </div>
+</header>
+
+<div class="container">
+  <div class="post">
+    <h3 class="title">Abbonamento</h3>
+    <p class="muted">FREE: ads ogni 5 post • Premium: no ads (MVP, senza pagamenti).</p>
+
+    <div class="actions">
+      <button id="pulse">VOID Pulse €2.99</button>
+      <button id="eternal">VOID Eternal €5.99</button>
+    </div>
+
+    <div class="actions">
+      <button id="free">Torna FREE</button>
+      <button class="btn btn-ghost" id="logoutBtn">Logout</button>
+    </div>
+
+    <p class="muted" id="tierNow" style="margin-top:10px;"></p>
+  </div>
+
+  <div class="post">
+    <h3 class="title">Assistenza</h3>
+    <p class="muted">Email supporto:</p>
+    <input value="VRLabsAS@outlook.com" readonly />
+  </div>
+</div>
+
+<nav class="bottom-nav">
+  <a href="home.html">🏠</a>
+  <a href="home.html">＋</a>
+  <a href="search.html">🔎</a>
+  <a class="active" href="settings.html">⚙️</a>
+</nav>
+
+<script type="module">
+  import { $, requireAuthOrRedirect, getUser, setTier, logout } from "./void.js";
+
+  const u = await requireAuthOrRedirect();
+  const me = await getUser(u.uid);
+  $("tierNow").textContent = "Tier attuale: " + (me?.tier ?? "FREE");
+
+  $("pulse").onclick = async ()=>{ await setTier("PULSE"); location.reload(); };
+  $("eternal").onclick = async ()=>{ await setTier("ETERNAL"); location.reload(); };
+  $("free").onclick = async ()=>{ await setTier("FREE"); location.reload(); };
+  $("logoutBtn").onclick = logout;
+</script>
+</body>
+</html>

@@ -6,6 +6,21 @@
   <title>VOID - Login</title>
   <link rel="stylesheet" href="style.css" />
 </head>
+  <script type="module">
+
+import { login } from "./auth.js";
+
+window.loginUser = function() {
+
+  const email = document.querySelector("#email").value;
+
+  const password = document.querySelector("#password").value;
+
+  login(email, password);
+
+}
+
+</script>
 <body class="bg-void">
   <div class="auth-wrap">
     <div class="auth-decor"></div>

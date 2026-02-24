@@ -1,31 +1,29 @@
+// ads.js
+
 import { db } from "./firebase-config.js";
+
 import {
   collection,
-  getDocs,
-  query,
-  where,
-  orderBy
+  getDocs
 } from "https://www.gstatic.com/firebasejs/10.7.1/firebase-firestore.js";
 
-export async function getActiveAds() {
-  const now = new Date();
 
-  const q = query(
-    collection(db, "ads"),
-    where("expiresAt", ">", now),
-    orderBy("createdAt", "desc")
-  );
+export async function loadAds() {
 
-  const snapshot = await getDocs(q);
+  const snapshot = await getDocs(collection(db, "ads"));
+
   let ads = [];
 
-  snapshot.forEach((doc) => {
+  snapshot.forEach(doc => {
+
     ads.push({
       id: doc.id,
       ...doc.data(),
       isAd: true
     });
+
   });
 
   return ads;
+
 }

@@ -1,0 +1,187 @@
+<!DOCTYPE html>
+<html lang="it">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>VOID - Profilo</title>
+  <link rel="stylesheet" href="style.css" />
+</head>
+<body>
+
+<header>
+  <a class="profile" href="home.html">
+    <img id="avatarMini" src="https://via.placeholder.com/50" />
+    <span id="titleName">Profilo</span>
+  </a>
+  <div style="display:flex;gap:10px;">
+    <a href="home.html" class="icon-btn">🏠</a>
+    <a href="settings.html" class="icon-btn">⚙️</a>
+  </div>
+</header>
+
+<div class="container">
+  <div class="post">
+    <div class="row">
+      <img id="avatarBig" src="https://via.placeholder.com/80"
+           style="width:80px;height:80px;border-radius:50%;border:1px solid rgba(255,255,255,.10);object-fit:cover;" />
+      <div style="flex:1;">
+        <div style="font-weight:1000;font-size:18px;" id="uName">@user</div>
+        <div class="muted" id="bio">...</div>
+
+        <div class="row" style="margin-top:10px;flex-wrap:wrap;">
+          <span class="pill" id="followers">Follower: 0</span>
+          <span class="pill" id="tier">Tier: FREE</span>
+        </div>
+
+        <div class="row" style="margin-top:12px;">
+          <button class="btn btn-ghost" id="followBtn" style="display:none;">➕ Follow</button>
+          <a class="btn btn-ghost" id="backToMe" style="display:none;" href="profile.html">Torna al mio profilo</a>
+        </div>
+      </div>
+    </div>
+
+    <div class="row" style="margin-top:14px;">
+      <button class="btn" id="tabPosts">Post vivi</button>
+      <button class="btn btn-ghost" id="tabReposts">Repostati</button>
+    </div>
+  </div>
+
+  <div id="list"></div>
+</div>
+
+<nav class="bottom-nav">
+  <a href="home.html">🏠</a>
+  <a href="home.html">＋</a>
+  <a href="search.html">🔎</a>
+  <a class="active" href="profile.html">👤</a>
+</nav>
+
+<script type="module">
+  import {
+    $, requireAuthOrRedirect, getUser,
+    db, escapeHtml,
+    formatRemaining, remainingMs, lifePct,
+    followUser
+  } from "./void.js";
+
+  import {
+    doc, getDoc, collection, getDocs, query, where, orderBy
+  } from "https://www.gstatic.com/firebasejs/10.12.5/firebase-firestore.js";
+
+  const params = new URLSearchParams(location.search);
+  const requestedUid = params.get("uid");
+
+  let myUid = null;
+  let uid = null;
+  let tab = "posts";
+
+  function postCard(p){
+    const rem = formatRemaining(remainingMs(p.expiresAt));
+    const pr = Math.round(lifePct(p.createdAt,p.expiresAt)*100);
+    const media = p.mediaType==="video"
+      ? `<video class="media" src="${p.mediaUrl}" controls playsinline></video>`
+      : `<img class="media" src="${p.mediaUrl}">`;
+    const tags = (p.tags&&p.tags.length)?`<p class="tags">${p.tags.map(t=>`#${escapeHtml(t)}`).join(" ")}</p>`:"";
+    return `
+      <div class="post">
+        <div class="post-header">
+          <img src="${p.authorAvatar||"https://via.placeholder.com/40"}">
+          <div class="post-info">
+            <div class="name">${escapeHtml(p.authorUsername||"User")}</div>
+            <div class="timer">⏳ ${rem}</div>
+          </div>
+        </div>
+        <div class="life-bar"><div class="life-fill" style="width:${pr}%"></div></div>
+        ${media}
+        ${p.caption?`<p class="caption">${escapeHtml(p.caption)}</p>`:""}
+        ${tags}
+        <p class="muted" style="margin-top:10px;">❤️ ${p.likeCount||0} • 🔁 ${p.repostCount||0} • 💬 ${p.commentCount||0}</p>
+      </div>
+    `;
+  }
+
+  async function loadUserHeader(){
+    const u = await getUser(uid);
+    if(!u){
+      $("list").innerHTML = `<p class="muted">Utente non trovato.</p>`;
+      return;
+    }
+
+    $("titleName").textContent = u.username ?? "Profilo";
+    $("uName").textContent = "@"+(u.username ?? "user");
+    $("bio").textContent = u.bio ?? "";
+    $("followers").textContent = "Follower: " + (u.followerCount ?? 0);
+    $("tier").textContent = "Tier: " + (u.tier ?? "FREE");
+    $("avatarMini").src = u.avatarUrl ?? "https://via.placeholder.com/50";
+    $("avatarBig").src = u.avatarUrl ?? "https://via.placeholder.com/80";
+
+    // se sto vedendo un altro profilo
+    if(uid !== myUid){
+      $("followBtn").style.display = "inline-flex";
+      $("backToMe").style.display = "inline-flex";
+      $("backToMe").href = `profile.html?uid=${myUid}`;
+    }else{
+      $("followBtn").style.display = "none";
+      $("backToMe").style.display = "none";
+    }
+  }
+
+  async function loadPosts(){
+    const pq = query(
+      collection(db,"posts"),
+      where("authorId","==",uid),
+      where("expiresAt",">",Date.now()),
+      orderBy("expiresAt","desc")
+    );
+    const snap = await getDocs(pq);
+    const posts = snap.docs.map(d=>({ id:d.id, ...d.data() }));
+    $("list").innerHTML = posts.map(postCard).join("") || `<p class="muted">Nessun post vivo.</p>`;
+  }
+
+  async function loadReposts(){
+    const rq = query(collection(db,"users",uid,"reposts"), orderBy("createdAt","desc"));
+    const rs = await getDocs(rq);
+    const ids = rs.docs.map(d=>d.data().postId);
+
+    const out = [];
+    for(const pid of ids.slice(0,30)){
+      const ps = await getDoc(doc(db,"posts",pid));
+      if(ps.exists() && ps.data().expiresAt > Date.now()){
+        out.push({ id: ps.id, ...ps.data() });
+      }
+    }
+    $("list").innerHTML = out.map(postCard).join("") || `<p class="muted">Nessun repost vivo.</p>`;
+  }
+
+  function setTab(t){
+    tab = t;
+    if(t==="posts"){
+      $("tabPosts").className = "btn";
+      $("tabReposts").className = "btn btn-ghost";
+      loadPosts();
+    }else{
+      $("tabPosts").className = "btn btn-ghost";
+      $("tabReposts").className = "btn";
+      loadReposts();
+    }
+  }
+
+  $("tabPosts").onclick = ()=> setTab("posts");
+  $("tabReposts").onclick = ()=> setTab("reposts");
+
+  $("followBtn").onclick = async ()=>{
+    await followUser(uid);
+    await loadUserHeader();
+  };
+
+  (async function init(){
+    const me = await requireAuthOrRedirect();
+    myUid = me.uid;
+    uid = requestedUid || myUid;
+
+    await loadUserHeader();
+    setTab("posts");
+  })();
+</script>
+</body>
+</html>

@@ -1,0 +1,67 @@
+<!DOCTYPE html>
+<html lang="it">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>VOID - Cerca</title>
+  <link rel="stylesheet" href="style.css" />
+</head>
+<body>
+
+<header>
+  <a class="profile" href="home.html">
+    <img src="https://via.placeholder.com/50" />
+    <span style="font-weight:1000;">Cerca</span>
+  </a>
+  <div style="display:flex;gap:10px;">
+    <a href="home.html" class="icon-btn">🏠</a>
+    <a href="settings.html" class="icon-btn">⚙️</a>
+  </div>
+</header>
+
+<div class="container">
+  <h2 class="title">Cerca profili</h2>
+  <p class="sub">MVP: username esatto. (Poi lo rendiamo “startsWith” tipo IG.)</p>
+
+  <input id="q" placeholder="Cerca username..." />
+  <button class="btn" id="go">Cerca</button>
+
+  <div id="res" style="margin-top:14px;display:grid;gap:10px;"></div>
+</div>
+
+<nav class="bottom-nav">
+  <a href="home.html">🏠</a>
+  <a href="home.html">＋</a>
+  <a class="active" href="search.html">🔎</a>
+  <a href="profile.html">👤</a>
+</nav>
+
+<script type="module">
+  import { $, requireAuthOrRedirect, db, escapeHtml } from "./void.js";
+  import { collection, getDocs, query, where } from "https://www.gstatic.com/firebasejs/10.12.5/firebase-firestore.js";
+
+  await requireAuthOrRedirect();
+
+  $("go").onclick = async ()=>{
+    const t = $("q").value.trim();
+    if(!t) return;
+
+    const qy = query(collection(db,"users"), where("username","==",t));
+    const snap = await getDocs(qy);
+    const users = snap.docs.map(d=>({ id:d.id, ...d.data() }));
+
+    $("res").innerHTML = users.map(u=>`
+      <a class="post" href="profile.html?uid=${u.id}">
+        <div class="row">
+          <img src="${u.avatarUrl || "https://via.placeholder.com/40"}" style="width:40px;height:40px;border-radius:50%;border:1px solid rgba(255,255,255,.10);object-fit:cover;">
+          <div>
+            <div style="font-weight:1000">@${escapeHtml(u.username||"user")}</div>
+            <div class="muted">${escapeHtml(u.bio||"")}</div>
+          </div>
+        </div>
+      </a>
+    `).join("") || `<p class="muted">Nessun risultato.</p>`;
+  };
+</script>
+</body>
+</html>

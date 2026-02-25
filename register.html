@@ -5,28 +5,9 @@
   <meta name="viewport" content="width=device-width, initial-scale=1.0" />
   <title>VOID - Registrazione</title>
   <link rel="stylesheet" href="style.css" />
-    <script type="module" src="firebase-config.js"></script>
-<script type="module" src="auth.js"></script>
-<script type="module" src="home.js"></script>
-  <script type="module">
-
-import { register } from "./auth.js";
-
-window.registerUser = function() {
-
-  const username = document.querySelector("#username").value;
-
-  const email = document.querySelector("#email").value;
-
-  const password = document.querySelector("#password").value;
-
-  register(email, password, username);
-
-}
-
-</script>
+  <script type="module" src="firebase-config.js"></script>
+  <script type="module" src="auth.js"></script>
 </head>
-
 <body class="bg-void">
   <div class="auth-wrap">
     <div class="auth-decor"></div>
@@ -50,20 +31,25 @@ window.registerUser = function() {
   </div>
 
   <script type="module">
-    import { $, register } from "./void.js";
-    $("regBtn").onclick = async () => {
-      $("msg").textContent = "";
-      try{
-        const avatarFile = $("avatar").files?.[0] ?? null;
-        await register(
-          $("username").value.trim(),
-          $("email").value.trim(),
-          $("pass").value,
-          avatarFile
-        );
-        location.href = "home.html";
-      }catch(e){
-        $("msg").textContent = e?.message ?? "Errore registrazione";
+    import { register } from "./auth.js";
+
+    const regBtn = document.getElementById("regBtn");
+    const msg = document.getElementById("msg");
+
+    regBtn.onclick = async () => {
+      msg.textContent = "";
+
+      const username = document.getElementById("username").value.trim();
+      const email = document.getElementById("email").value.trim();
+      const password = document.getElementById("pass").value;
+      const avatarFile = document.getElementById("avatar").files[0] ?? null;
+
+      try {
+        await register(username, email, password, avatarFile);
+        msg.textContent = "Registrazione completata! Reindirizzamento...";
+        setTimeout(() => { window.location.href = "home.html"; }, 1000);
+      } catch (e) {
+        msg.textContent = e?.message || "Errore durante la registrazione";
       }
     };
   </script>

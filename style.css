@@ -234,3 +234,10 @@ header{
   cursor:pointer;
 }
 .sep{height:1px;background:rgba(255,255,255,.08);margin:12px 0}
+/* imposta viola al passaggio del mouse e al click */
+.subscription-btn:hover,
+.subscription-btn:active {
+  background-color: #a855f7; /* viola VOID */
+  color: white;
+  cursor: pointer;
+}

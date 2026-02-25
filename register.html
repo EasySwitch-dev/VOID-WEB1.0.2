@@ -2,56 +2,87 @@
 <html lang="it">
 <head>
   <meta charset="UTF-8" />
-  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0"/>
   <title>VOID - Registrazione</title>
-  <link rel="stylesheet" href="style.css" />
+  <link rel="stylesheet" href="style.css"/>
+
   <script type="module" src="firebase-config.js"></script>
   <script type="module" src="auth.js"></script>
 </head>
+
 <body class="bg-void">
-  <div class="auth-wrap">
-    <div class="auth-decor"></div>
 
-    <div class="auth-card">
-      <h1 class="brand">VOID</h1>
-      <p class="brand-sub">Crea un account. I post vivono 24 ore.</p>
-      <div class="hr"></div>
+<div class="auth-wrap">
+  <div class="auth-decor"></div>
 
-      <input id="username" placeholder="Username" autocomplete="username" />
-      <input id="email" type="email" placeholder="Email" autocomplete="email" />
-      <input id="pass" type="password" placeholder="Password" autocomplete="new-password" />
-      <input id="avatar" type="file" accept="image/*" />
+  <div class="auth-card">
 
-      <button class="btn" id="regBtn">Registrati</button>
-      <a class="small-link" href="login.html">Hai già un account? Accedi</a>
-      <a class="small-link" href="index.html">← Indietro</a>
+    <h1 class="brand">VOID</h1>
+    <p class="brand-sub">Crea un account. I post vivono 24 ore.</p>
 
-      <p id="msg" class="muted" style="margin-top:12px;"></p>
-    </div>
+    <div class="hr"></div>
+
+    <input id="username" placeholder="Username"/>
+    <input id="email" type="email" placeholder="Email"/>
+    <input id="pass" type="password" placeholder="Password"/>
+    <input id="avatar" type="file" accept="image/*"/>
+
+    <button class="btn" id="regBtn">Registrati</button>
+
+    <a class="small-link" href="login.html">Hai già un account? Accedi</a>
+    <a class="small-link" href="index.html">← Indietro</a>
+
+    <p id="msg" class="muted"></p>
+
   </div>
+</div>
 
-  <script type="module">
-    import { register } from "./auth.js";
 
-    const regBtn = document.getElementById("regBtn");
-    const msg = document.getElementById("msg");
+<script type="module">
 
-    regBtn.onclick = async () => {
-      msg.textContent = "";
+import { register } from "./auth.js";
 
-      const username = document.getElementById("username").value.trim();
-      const email = document.getElementById("email").value.trim();
-      const password = document.getElementById("pass").value;
-      const avatarFile = document.getElementById("avatar").files[0] ?? null;
+const btn = document.getElementById("regBtn");
+const msg = document.getElementById("msg");
 
-      try {
-        await register(username, email, password, avatarFile);
-        msg.textContent = "Registrazione completata! Reindirizzamento...";
-        setTimeout(() => { window.location.href = "home.html"; }, 800);
-      } catch (e) {
-        msg.textContent = e?.message || "Errore durante la registrazione";
-      }
-    };
-  </script>
+btn.addEventListener("click", async ()=>{
+
+  msg.textContent = "Creazione account...";
+
+  try{
+
+    const username =
+      document.getElementById("username").value.trim();
+
+    const email =
+      document.getElementById("email").value.trim();
+
+    const password =
+      document.getElementById("pass").value;
+
+    const avatar =
+      document.getElementById("avatar").files[0] ?? null;
+
+    await register(username,email,password,avatar);
+
+    msg.textContent = "Account creato!";
+
+    setTimeout(()=>{
+      window.location.href="home.html";
+    },800);
+
+  }catch(e){
+
+    console.error(e);
+
+    msg.textContent =
+      e.message ?? "Errore registrazione";
+
+  }
+
+});
+
+</script>
+
 </body>
 </html>

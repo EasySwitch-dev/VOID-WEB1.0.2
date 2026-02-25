@@ -1,35 +1,22 @@
-// auth.js
-
-import { auth, db } from "./firebase-config.js";
+import { auth } from "./firebase-config.js";
 
 import {
   createUserWithEmailAndPassword,
   signInWithEmailAndPassword
-} from "https://www.gstatic.com/firebasejs/10.7.1/firebase-auth.js";
-
-import {
-  doc,
-  setDoc
-} from "https://www.gstatic.com/firebasejs/10.7.1/firebase-firestore.js";
+} from "https://www.gstatic.com/firebasejs/10.12.2/firebase-auth.js";
 
 
-export async function register(email, password, username) {
+// registrazione
+window.register = async function () {
+
+  const email = document.getElementById("email").value;
+  const password = document.getElementById("password").value;
 
   try {
 
-    const userCredential =
-      await createUserWithEmailAndPassword(auth, email, password);
+    await createUserWithEmailAndPassword(auth, email, password);
 
-    const user = userCredential.user;
-
-    await setDoc(doc(db, "users", user.uid), {
-
-      username: username,
-      email: email,
-      premium: false,
-      createdAt: new Date()
-
-    });
+    alert("Account creato!");
 
     window.location.href = "home.html";
 
@@ -39,16 +26,21 @@ export async function register(email, password, username) {
 
   }
 
-}
+};
 
 
+// login
+window.login = async function () {
 
-export async function login(email, password) {
+  const email = document.getElementById("email").value;
+  const password = document.getElementById("password").value;
 
   try {
 
     await signInWithEmailAndPassword(auth, email, password);
 
+    alert("Login effettuato!");
+
     window.location.href = "home.html";
 
   } catch (error) {
@@ -57,4 +49,4 @@ export async function login(email, password) {
 
   }
 
-}
+};

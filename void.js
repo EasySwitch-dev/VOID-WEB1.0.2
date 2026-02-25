@@ -18,13 +18,27 @@ import { getFunctions, httpsCallable } from "https://www.gstatic.com/firebasejs/
 // =======================
 // 1) INCOLLA QUI LA TUA CONFIG FIREBASE
 // =======================
-export const firebaseConfig = {
-  apiKey: "YOUR_KEY",
-  authDomain: "YOUR_DOMAIN",
-  projectId: "YOUR_PROJECT_ID",
-  storageBucket: "YOUR_BUCKET",
-  appId: "YOUR_APP_ID",
+// Import the functions you need from the SDKs you need
+import { initializeApp } from "firebase/app";
+import { getAnalytics } from "firebase/analytics";
+// TODO: Add SDKs for Firebase products that you want to use
+// https://firebase.google.com/docs/web/setup#available-libraries
+
+// Your web app's Firebase configuration
+// For Firebase JS SDK v7.20.0 and later, measurementId is optional
+const firebaseConfig = {
+  apiKey: "AIzaSyCihCC_yOcR_vDBFtUFz8q_kk_In7hEiKk",
+  authDomain: "void-web-c4c20.firebaseapp.com",
+  projectId: "void-web-c4c20",
+  storageBucket: "void-web-c4c20.firebasestorage.app",
+  messagingSenderId: "669855615136",
+  appId: "1:669855615136:web:92e90ff435dc0be66d21c5",
+  measurementId: "G-EEWHX8F0LL"
 };
+
+// Initialize Firebase
+const app = initializeApp(firebaseConfig);
+const analytics = getAnalytics(app);
 
 // =======================
 // 2) (OPZIONALE) TENOR KEY PER GIF PICKER

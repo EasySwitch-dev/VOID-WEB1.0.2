@@ -1,52 +1,33 @@
-import { auth } from "./firebase-config.js";
+// auth.js
+import { auth, storage } from "./firebase-config.js";
+import { createUserWithEmailAndPassword, updateProfile } from "https://www.gstatic.com/firebasejs/9.23.0/firebase-auth.js";
+import { ref, uploadBytes, getDownloadURL } from "https://www.gstatic.com/firebasejs/9.23.0/firebase-storage.js";
 
-import {
-  createUserWithEmailAndPassword,
-  signInWithEmailAndPassword
-} from "https://www.gstatic.com/firebasejs/10.12.2/firebase-auth.js";
+/**
+ * Registra un nuovo utente
+ * @param {string} username
+ * @param {string} email
+ * @param {string} password
+ * @param {File|null} avatarFile
+ */
+export async function register(username, email, password, avatarFile = null) {
+  if (!username || !email || !password) throw new Error("Compila tutti i campi");
 
+  // Crea l'utente su Firebase Auth
+  const userCredential = await createUserWithEmailAndPassword(auth, email, password);
 
-// registrazione
-window.register = async function () {
-
-  const email = document.getElementById("email").value;
-  const password = document.getElementById("password").value;
-
-  try {
-
-    await createUserWithEmailAndPassword(auth, email, password);
-
-    alert("Account creato!");
-
-    window.location.href = "home.html";
-
-  } catch (error) {
-
-    alert(error.message);
-
+  // Aggiorna displayName e avatar se presente
+  let photoURL = null;
+  if (avatarFile) {
+    const avatarRef = ref(storage, `avatars/${userCredential.user.uid}`);
+    await uploadBytes(avatarRef, avatarFile);
+    photoURL = await getDownloadURL(avatarRef);
   }
 
-};
+  await updateProfile(userCredential.user, {
+    displayName: username,
+    photoURL
+  });
 
-
-// login
-window.login = async function () {
-
-  const email = document.getElementById("email").value;
-  const password = document.getElementById("password").value;
-
-  try {
-
-    await signInWithEmailAndPassword(auth, email, password);
-
-    alert("Login effettuato!");
-
-    window.location.href = "home.html";
-
-  } catch (error) {
-
-    alert(error.message);
-
-  }
-
-};
+  return userCredential.user;
+}

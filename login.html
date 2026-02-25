@@ -1,52 +1,42 @@
-import { auth } from "./firebase-config.js";
+<!DOCTYPE html>
+<html lang="it">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>VOID - Login</title>
+  <link rel="stylesheet" href="style.css" />
+</head>
+<body class="bg-void">
+  <div class="auth-wrap">
+    <div class="auth-decor"></div>
 
-import {
-  createUserWithEmailAndPassword,
-  signInWithEmailAndPassword
-} from "https://www.gstatic.com/firebasejs/10.12.2/firebase-auth.js";
+    <div class="auth-card">
+      <h1 class="brand">VOID</h1>
+      <p class="brand-sub">Accedi e fai vivere i tuoi post.</p>
+      <div class="hr"></div>
 
+      <input id="email" type="email" placeholder="Email" autocomplete="email" />
+      <input id="pass" type="password" placeholder="Password" autocomplete="current-password" />
 
-// registrazione
-window.register = async function () {
+      <button class="btn" id="loginBtn">Accedi</button>
+      <a class="small-link" href="register.html">Non hai un account? Registrati</a>
+      <a class="small-link" href="index.html">← Indietro</a>
 
-  const email = document.getElementById("email").value;
-  const password = document.getElementById("password").value;
+      <p id="msg" class="muted" style="margin-top:12px;"></p>
+    </div>
+  </div>
 
-  try {
-
-    await createUserWithEmailAndPassword(auth, email, password);
-
-    alert("Account creato!");
-
-    window.location.href = "home.html";
-
-  } catch (error) {
-
-    alert(error.message);
-
-  }
-
-};
-
-
-// login
-window.login = async function () {
-
-  const email = document.getElementById("email").value;
-  const password = document.getElementById("password").value;
-
-  try {
-
-    await signInWithEmailAndPassword(auth, email, password);
-
-    alert("Login effettuato!");
-
-    window.location.href = "home.html";
-
-  } catch (error) {
-
-    alert(error.message);
-
-  }
-
-};
+  <script type="module">
+    import { $, login } from "./void.js";
+    $("loginBtn").onclick = async () => {
+      $("msg").textContent = "";
+      try{
+        await login($("email").value.trim(), $("pass").value);
+        location.href = "home.html";
+      }catch(e){
+        $("msg").textContent = e?.message ?? "Errore login";
+      }
+    };
+  </script>
+</body>
+</html>

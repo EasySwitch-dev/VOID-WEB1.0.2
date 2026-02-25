@@ -5,24 +5,8 @@
   <meta name="viewport" content="width=device-width, initial-scale=1.0" />
   <title>VOID - Login</title>
   <link rel="stylesheet" href="style.css" />
-      <script type="module" src="firebase-config.js"></script>
-<script type="module" src="auth.js"></script>
-<script type="module" src="home.js"></script>
-  <script type="module">
-
-import { register } from "./auth.js";
-
-window.registerUser = function() {
-
-  const email = document.querySelector("#email").value;
-
-  const password = document.querySelector("#password").value;
-
-  register(email, password);
-
-}
-
-</script>
+  <script type="module" src="firebase-config.js"></script>
+  <script type="module" src="auth.js"></script>
 </head>
 <body class="bg-void">
   <div class="auth-wrap">
@@ -45,14 +29,28 @@ window.registerUser = function() {
   </div>
 
   <script type="module">
-    import { $, login } from "./void.js";
-    $("loginBtn").onclick = async () => {
-      $("msg").textContent = "";
-      try{
-        await login($("email").value.trim(), $("pass").value);
-        location.href = "home.html";
-      }catch(e){
-        $("msg").textContent = e?.message ?? "Errore login";
+    import { login, autoLogin } from "./auth.js";
+
+    const loginBtn = document.getElementById("loginBtn");
+    const msg = document.getElementById("msg");
+
+    // Se già loggato non fa redirect automatico da qui
+    autoLogin(false);
+
+    loginBtn.onclick = async () => {
+      msg.textContent = "";
+
+      const email = document.getElementById("email").value.trim();
+      const password = document.getElementById("pass").value;
+
+      try {
+        await login(email, password);
+        msg.textContent = "Accesso effettuato!";
+        setTimeout(() => {
+          window.location.href = "home.html";
+        }, 500);
+      } catch (e) {
+        msg.textContent = e?.message || "Errore durante il login";
       }
     };
   </script>

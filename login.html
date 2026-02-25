@@ -1,94 +1,82 @@
 <!DOCTYPE html>
 <html lang="it">
 <head>
+
 <meta charset="UTF-8"/>
 <meta name="viewport" content="width=device-width, initial-scale=1.0"/>
 
-<title>VOID - Login</title>
+<title>VOID - Home</title>
 
 <link rel="stylesheet" href="style.css"/>
 
 <script type="module" src="firebase-config.js"></script>
 <script type="module" src="auth.js"></script>
-
-</head>
-
-<body class="bg-void">
-
-<div class="auth-wrap">
-
-<div class="auth-decor"></div>
-
-<div class="auth-card">
-
-<h1 class="brand">VOID</h1>
-<p class="brand-sub">Accedi e fai vivere i tuoi post.</p>
-
-<div class="hr"></div>
-
-<input id="email" type="email" placeholder="Email"/>
-<input id="pass" type="password" placeholder="Password"/>
-
-<button class="btn" id="loginBtn">Accedi</button>
-
-<a class="small-link" href="register.html">
-Non hai un account? Registrati
-</a>
-
-<a class="small-link" href="index.html">
-← Indietro
-</a>
-
-<p id="msg" class="muted"></p>
-
-</div>
-</div>
-
+<script type="module" src="ads.js"></script>
+<script type="module" src="home.js"></script>
 
 <script type="module">
 
-import { login } from "./auth.js";
+import { auth } from "./firebase-config.js";
+import { onAuthStateChanged }
+from "https://www.gstatic.com/firebasejs/10.12.2/firebase-auth.js";
 
-const btn =
-document.getElementById("loginBtn");
+onAuthStateChanged(auth,(user)=>{
 
-const msg =
-document.getElementById("msg");
+if(!user){
 
-btn.addEventListener("click", async ()=>{
-
-msg.textContent="Accesso...";
-
-try{
-
-const email =
-document.getElementById("email").value.trim();
-
-const pass =
-document.getElementById("pass").value;
-
-await login(email,pass);
-
-msg.textContent="Login riuscito";
-
-setTimeout(()=>{
-
-window.location.href="home.html";
-
-},500);
-
-}catch(e){
-
-console.error(e);
-
-msg.textContent =
-e.message ?? "Errore login";
+window.location.href="login.html";
 
 }
 
 });
 
 </script>
+
+</head>
+
+<body>
+
+
+<header>
+
+<a class="profile" id="meProfileLink" href="profile.html">
+
+<img id="meAvatar"
+src="https://via.placeholder.com/50"/>
+
+<span id="meName">VOID</span>
+
+</a>
+
+
+<div style="display:flex;gap:10px;">
+
+<a href="search.html" class="icon-btn">🔎</a>
+
+<a href="#" id="openCreate" class="icon-btn">➕</a>
+
+<a href="settings.html" class="icon-btn">⚙️</a>
+
+</div>
+
+</header>
+
+
+<div class="feed" id="feed"></div>
+
+
+<nav class="bottom-nav">
+
+<a class="active" href="home.html">🏠</a>
+
+<a href="#" id="openCreate2">＋</a>
+
+<a href="search.html">🔎</a>
+
+<a href="profile.html">👤</a>
+
+</nav>
+
 
 </body>
 </html>

@@ -22,7 +22,7 @@
       <input id="pass" type="password" placeholder="Password" autocomplete="new-password" />
       <input id="avatar" type="file" accept="image/*" />
 
-      <button class="btn" id="regBtn"><a href="home.html">"Registrati</a></button>
+      <button class="btn" id="regBtn">Registrati</button>
       <a class="small-link" href="login.html">Hai già un account? Accedi</a>
       <a class="small-link" href="index.html">← Indietro</a>
 
@@ -47,7 +47,7 @@
       try {
         await register(username, email, password, avatarFile);
         msg.textContent = "Registrazione completata! Reindirizzamento...";
-        setTimeout(() => { window.location.href = "home.html"; }, 1000);
+        setTimeout(() => { window.location.href = "home.html"; }, 800);
       } catch (e) {
         msg.textContent = e?.message || "Errore durante la registrazione";
       }
